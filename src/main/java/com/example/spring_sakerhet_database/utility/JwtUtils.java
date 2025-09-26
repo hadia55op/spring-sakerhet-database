@@ -40,7 +40,7 @@ public class JwtUtils {
 // Build and return the JWT token with User identifier (usually email or username)
         return Jwts.builder()
                 .setSubject(user.getUsername())
-                .claim("roles", roles)//dd user roles to jwttoken
+                .claim("roles", roles)// users jwt tokenroller i payload
                 .setId(jti) // Token ID for refresh or revocation
                 .setId(jti)
                 .setIssuedAt(new Date())

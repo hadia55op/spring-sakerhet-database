@@ -66,7 +66,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             if (!bucket.tryConsume(1)) {
                 response.setStatus(429);
                 response.setContentType("text/plain");
-                response.getWriter().write("Rate limit exceeded: Max 2 requests per minute for this endpoint.");
+                response.getWriter().write("Rate limit exceeded: Max 4 requests per minute for this endpoint.");
                 return;
             }
         }

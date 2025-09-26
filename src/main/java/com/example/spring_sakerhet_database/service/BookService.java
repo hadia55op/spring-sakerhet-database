@@ -8,6 +8,7 @@ import com.example.spring_sakerhet_database.exception.ResourceNotFoundException;
 import com.example.spring_sakerhet_database.repository.AuthorRepository;
 import com.example.spring_sakerhet_database.repository.BookRepository;
 import org.springframework.stereotype.Service;
+import com.example.spring_sakerhet_database.utility.InputSanitizer;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,18 +18,21 @@ public class BookService {
 
     private final BookRepository bookRepository;
     private final AuthorRepository authorRepository;
-
-    public BookService(BookRepository bookRepository, AuthorRepository authorRepository) {
+    private final InputSanitizer inputSanitizer;
+    public BookService(BookRepository bookRepository, AuthorRepository authorRepository, InputSanitizer inputSanitizer) {
         this.bookRepository = bookRepository;
         this.authorRepository = authorRepository;
+        this.inputSanitizer = inputSanitizer;
     }
-
     public List<BookWithDetailsDTO> searchBooks(String title, String author) {
         List<Book> books;
 
-        if (title != null) {
+        title = inputSanitizer.sanitize(title);
+        author = inputSanitizer.sanitize(author);
+
+        if (title != null && !title.isBlank()) {
             books = bookRepository.findBookByExactTitle(title);
-        } else if (author != null) {
+        } else if (author != null && !author.isBlank()) {
             books = bookRepository.findBooksByAuthorLastName(author);
         } else {
             books = List.of();
@@ -39,14 +43,16 @@ public class BookService {
                 .collect(Collectors.toList());
     }
 
-    @PreAuthorize("hasRole('ADMIN')")  //  Service-level protection
+
+
+    @PreAuthorize("hasRole('ADMIN')")
     public BookWithDetailsDTO addBook(CreateBookRequest createBookRequest) {
         Long authorId = createBookRequest.getAuthorId();
         Author author = authorRepository.findById(authorId).orElseThrow(() ->
                 new ResourceNotFoundException("Author with ID " + authorId + " not found"));
 
         Book book = new Book();
-        book.setTitle(createBookRequest.getTitle());
+        book.setTitle(inputSanitizer.sanitize(createBookRequest.getTitle()));  // sanitize title
         book.setPublicationYear(createBookRequest.getPublicationYear());
         book.setAvailableCopies(createBookRequest.getAvailableCopies());
         book.setTotalCopies(createBookRequest.getTotalCopies());
@@ -55,6 +61,9 @@ public class BookService {
         bookRepository.save(book);
         return toBookWithDetailsDTO(book);
     }
+
+
+
 
     private BookWithDetailsDTO toBookWithDetailsDTO(Book book) {
         BookWithDetailsDTO dto = new BookWithDetailsDTO();

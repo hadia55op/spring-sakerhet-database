@@ -12,7 +12,7 @@ public class RateLimitingService {
     private final int MAX_ATTEMPT = 5;
     private final long BLOCK_TIME_MILLIS = 60 * 1000; // 1 minute block time
 
-    // Track attempts and timestamps
+    // Track attempts and time
     private final Map<String, Attempt> attemptsCache = new ConcurrentHashMap<>();
 
     public boolean isBlocked(String key) {
@@ -39,7 +39,7 @@ public class RateLimitingService {
         int newCount = attempt.count + 1;
 
         if (newCount >= MAX_ATTEMPT) {
-            // Block user/IP for 1 minute
+            // Block user for 1 minute
             attemptsCache.put(key, new Attempt(newCount, Instant.now().toEpochMilli() + BLOCK_TIME_MILLIS));
         } else {
             attemptsCache.put(key, new Attempt(newCount, 0));

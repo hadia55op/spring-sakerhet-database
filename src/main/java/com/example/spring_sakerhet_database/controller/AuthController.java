@@ -1,6 +1,7 @@
 package com.example.spring_sakerhet_database.controller;
 
 import com.example.spring_sakerhet_database.payload.*;
+import com.example.spring_sakerhet_database.utility.InputSanitizer;
 import com.example.spring_sakerhet_database.utility.JwtUtils;
 import com.example.spring_sakerhet_database.service.TokenBlacklistService;
 import com.example.spring_sakerhet_database.entity.User;
@@ -66,7 +67,7 @@ public class AuthController {
     private final Map<String, List<Long>> loginRateLimiting = new ConcurrentHashMap<>();
 
     private static final int AttemptsLimit = 5;
-    private static final long LockoutDuration= 60_000;
+    private static final long LockoutDuration= 60_000;//one minute
     @Autowired
     private AuthenticationManager authManager;
 
@@ -90,13 +91,14 @@ public class AuthController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
-
+    @Autowired
+    private InputSanitizer inputSanitizer;
     @PostMapping("/login")
     //med @Valid-annotationer vid misslyckade vlidering kommer Spring automatiskt att kasta MethodArgumentNotValidException
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
         String email = loginRequest.getEmail();
 
-
+//Memory-based lockout logic:
         loginRateLimiting.compute(email, (key, attempts) -> {
             if (attempts == null) attempts = new ArrayList<>();
             long now = System.currentTimeMillis();
@@ -146,7 +148,7 @@ public class AuthController {
             return ResponseEntity.ok(response);
 
         } catch (AuthenticationException ex) {
-            // Failed login - record attempt
+            // Failed login record attempt
             loginRateLimiting.compute(email, (key, attempts) -> {
                 if (attempts == null) attempts = new ArrayList<>();
                 attempts.add(System.currentTimeMillis());
@@ -219,41 +221,71 @@ public class AuthController {
 
 
 
-    @PostMapping("/register")             //http://localhost:3030/api/auth/register
+    //@PostMapping("/register")             //http://localhost:3030/api/auth/register
                                     //{
                                     //  "email": "sara@example.com",
                                      //  "password": "Test1000",
                                    //    "firstName": "Sara",
                                     //    "lastName": "Khan"
                                        // }
+//    public ResponseEntity<?> registerUser(@Valid @RequestBody UserRegisterRequest request) {
+//
+//        // Check if email is already in use
+//        if (userRepository.existsByEmail(request.getEmail())) {
+//            return ResponseEntity
+//                    .badRequest()
+//                    .body("Email is already taken");
+//        }
+//
+//        //  Create new User entity
+//        User user = new User();
+//        user.setFirstName(request.getFirstName());
+//        user.setLastName(request.getLastName());
+//        user.setEmail(request.getEmail());
+//        user.setPassword(passwordEncoder.encode(request.getPassword()));
+//        user.setRegistrationDate(LocalDate.now());
+//
+//        //  gives default role "ROLE_USER"
+//        Role userRole = roleRepo.findByName("ROLE_USER")
+//                .orElseThrow(() -> new RuntimeException("Default role ROLE_USER not found"));
+//
+//        user.setRoles(Set.of(userRole));
+//
+//        //  add user to DB
+//        userRepository.save(user);
+//
+//        return ResponseEntity.ok("User registered successfully!");
+//    }
+    @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody UserRegisterRequest request) {
+        // Sanitize inputs
+        String email = inputSanitizer.sanitize(request.getEmail());
+        String firstName = inputSanitizer.sanitize(request.getFirstName());
+        String lastName = inputSanitizer.sanitize(request.getLastName());
 
         // Check if email is already in use
-        if (userRepository.existsByEmail(request.getEmail())) {
-            return ResponseEntity
-                    .badRequest()
-                    .body("Email is already taken");
+        if (userRepository.existsByEmail(email)) {
+            return ResponseEntity.badRequest().body("Email is already taken");
         }
 
-        //  Create new User entity
+        // Create new user
         User user = new User();
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
+        user.setEmail(email);
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRegistrationDate(LocalDate.now());
 
-        //  gives default role "ROLE_USER"
         Role userRole = roleRepo.findByName("ROLE_USER")
                 .orElseThrow(() -> new RuntimeException("Default role ROLE_USER not found"));
 
         user.setRoles(Set.of(userRole));
 
-        //  add user to DB
         userRepository.save(user);
 
         return ResponseEntity.ok("User registered successfully!");
     }
+
 }
 
 

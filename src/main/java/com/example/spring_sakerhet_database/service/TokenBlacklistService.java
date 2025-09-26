@@ -17,7 +17,7 @@ public class TokenBlacklistService {
     }
 
     public boolean isBlacklisted(String jti) {
-        if (jti == null) return true;  // säkerhetsmässigt: om inget jti ⇒ misstro
+        if (jti == null) return true;
         return blacklistedJti.contains(jti);
     }
 

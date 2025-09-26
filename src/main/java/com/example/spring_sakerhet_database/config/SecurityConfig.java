@@ -21,6 +21,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.http.HttpMethod;
 
+
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
@@ -49,14 +50,14 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())  // Disable for REST API (stateless)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> headers// säkra HTTP-headers (HSTS, X-Frame-Options, Content Security Policy)"
-                        .httpStrictTransportSecurity(hsts -> hsts
+                        .httpStrictTransportSecurity(hsts -> hsts//Det fungerar endast om servern redan körs på HTTPS i framtid.
                                 .includeSubDomains(true)
                                 .maxAgeInSeconds(15552000)  // 6 months
                         )
                         .frameOptions(frame -> frame
                                 .deny()  // Prevent clickjacking
                         )
-                        .contentSecurityPolicy(csp -> csp
+                        .contentSecurityPolicy(csp -> csp// skydd mot XSS
                                 .policyDirectives("default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'")
                         )
 
@@ -65,36 +66,23 @@ public class SecurityConfig {
 
                         //  Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
-                        //.requestMatchers("/public/**").permitAll()
                         .requestMatchers("/books", "/books/search").permitAll()
                         .requestMatchers("/authors", "/authors/name/**").permitAll()
                         .requestMatchers("/api/auth/logout").permitAll()
-                        //.requestMatchers("/api/auth/refresh").permitAll()
-                        //.requestMatchers("/api/auth/login", "/api/auth/refresh").permitAll()
-                        //.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        //.requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
-                        //.requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
-
-
-
                         //  Admin-only endpoints
                         .requestMatchers(HttpMethod.POST, "/books").hasRole("ADMIN")
-                        //.requestMatchers("/users/**").hasAnyRole( "ADMIN")
+
                         .requestMatchers(HttpMethod.POST, "/authors").hasRole("ADMIN")
-                       // .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                       // .requestMatchers("/admin/**").hasRole("ADMIN")
 
 
-                        // 🔐 User and Admin can access
-                       // .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
-                       .requestMatchers("/users/**").hasAnyRole( "ADMIN", "USER")
-                       // .requestMatchers("/user/**").hasAnyRole("USER", "ADMIN")
 
-                        // 🔐 Loan and User-specific endpoints
+                        //  User and Admin can access
+                        .requestMatchers("/users/**").hasAnyRole( "ADMIN", "USER")
+                        // Loan and User-specific endpoints
                         .requestMatchers("/loans/**").hasAnyRole("USER", "ADMIN")
-                        //.requestMatchers("/users/**").hasAnyRole("USER", "ADMIN")
 
-                        // 🔒 Everything else must be authenticated
+
+                        //  Everything else must be authenticated
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -113,4 +101,6 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", config);
         return source;
 
-}}
+}
+
+}

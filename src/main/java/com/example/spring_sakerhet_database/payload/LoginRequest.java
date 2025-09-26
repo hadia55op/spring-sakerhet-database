@@ -1,6 +1,4 @@
 package com.example.spring_sakerhet_database.payload;
-
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
